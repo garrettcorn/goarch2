@@ -1,3 +1,5 @@
 module github.com/garrettcorn/goarch2
 
-go 1.18
+go 1.19
+
+require github.com/golang-jwt/jwt/v4 v4.4.2
