@@ -306,23 +306,16 @@ var sessionStore SessionStore
 var key []byte
 
 func main() {
+	// setup backend
 	storage = NewMemoryStore()
 	sessionStore = NewMemorySessionStore()
 	key = []byte("MySuperSecretKey")
+
+	// routes
 	http.HandleFunc("/", index)
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
 
-	ss, err := createToken([]byte("somerandomsid"), key)
-	if err != nil {
-		log.Println("unable to create token", err)
-	}
-	sid, err := parseToken(ss, key)
-	if err != nil {
-		log.Printf("unable to parse. %v\n", err)
-	} else {
-		log.Println("token created and parsed successfully. sid=" + sid)
-	}
-
+	// start server
 	log.Panic(http.ListenAndServe(":9090", nil))
 }
