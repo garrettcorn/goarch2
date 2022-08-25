@@ -273,7 +273,8 @@ func createToken(sid, key []byte) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Minute)),
 		},
 	})
-	return token.SignedString(key)
+	ss, err := token.SignedString(key)
+	return ss, fmt.Errorf("(createToken) could not sign token. %w", err)
 }
 
 func parseToken(ss string, key []byte) (string, error) {
