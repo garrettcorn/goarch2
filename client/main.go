@@ -17,7 +17,7 @@ import (
 )
 
 type User struct {
-	Name     string
+	Email    string
 	Password []byte
 }
 
@@ -57,10 +57,12 @@ func (ss *MemorySessionStore) Remove(id string) {
 }
 
 func (ss MemorySessionStore) Get(id string) (Session, error) {
-	if time.Now().Before(ss.sessionStore[id].ExpiresAt) {
-		return ss.sessionStore[id], nil
-	} else {
-		delete(ss.sessionStore, id)
+	if _, ok := ss.sessionStore[id]; ok {
+		if time.Now().Before(ss.sessionStore[id].ExpiresAt) {
+			return ss.sessionStore[id], nil
+		} else {
+			delete(ss.sessionStore, id)
+		}
 	}
 	return Session{}, fmt.Errorf("session not found")
 }
@@ -78,15 +80,15 @@ func NewMemoryStore() *MemoryStore {
 var ErrUserAlreadyRegistered = errors.New("MemoryStore: user aleady registered")
 
 func (s *MemoryStore) SaveUser(u User) error {
-	if s.store[u.Name] == nil {
-		s.store[u.Name] = []byte(u.Password)
+	if s.store[u.Email] == nil {
+		s.store[u.Email] = []byte(u.Password)
 		return nil
 	}
 	return ErrUserAlreadyRegistered
 }
 
 func (s *MemoryStore) GetUser(username string) User {
-	return User{Name: username, Password: s.store[username]}
+	return User{Email: username, Password: s.store[username]}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -173,7 +175,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/?statusMsg="+statusMsg, http.StatusSeeOther)
 			return
 		}
-		err = storage.SaveUser(User{Name: username, Password: ePassword})
+		err = storage.SaveUser(User{Email: username, Password: ePassword})
 		if err != nil {
 			statusMsg := url.QueryEscape("unable to save user")
 			http.Redirect(w, r, "/?statusMsg="+statusMsg, http.StatusSeeOther)
