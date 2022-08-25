@@ -1,20 +1,22 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type CustomClaim struct {
+	jwt.RegisteredClaims
+	SessionId string
+}
 
 type User struct {
 	Email    string
@@ -264,43 +266,26 @@ func login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?statusMsg="+statusMsg, http.StatusSeeOther)
 }
 
-func hmacSign(msg []byte, key []byte) (string, error) {
-	h := hmac.New(sha256.New, key)
-	_, err := h.Write(msg)
-	if err != nil {
-		return "", fmt.Errorf("hmacSign: unable to write msg to hash. %w", err)
-	}
-	return base64.URLEncoding.EncodeToString(h.Sum(nil)), nil
-}
-
-func hmacCheck(msg, sig, key []byte) bool {
-	tempSig, err := hmacSign(msg, key)
-	if err != nil {
-		return false
-	}
-	return hmac.Equal([]byte(tempSig), sig)
-}
-
 func createToken(sid, key []byte) (string, error) {
-	sig, err := hmacSign(sid, key)
-	if err != nil {
-		return "", fmt.Errorf("cToken: unable to hmacSign %s, because %s", sid, err)
-	}
-	return string(sig) + "|" + string(sid), nil
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, CustomClaim{
+		SessionId: string(sid),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Minute)),
+		},
+	})
+	return token.SignedString(key)
 }
 
 func parseToken(ss string, key []byte) (string, error) {
-	sep := "|"
-	xs := strings.SplitN(ss, sep, 2)
-	if len(xs) != 2 {
-		return "", fmt.Errorf("length not equal to 2")
+	token, err := jwt.ParseWithClaims(ss, &CustomClaim{}, func(t *jwt.Token) (interface{}, error) { return key, nil }, jwt.WithValidMethods([]string{jwt.SigningMethodHS512.Alg()}))
+	if err != nil {
+		return "", fmt.Errorf("parseToken: unable to parse jwt token: %w", err)
 	}
-	sig := xs[0]
-	sid := xs[1]
-	if hmacCheck([]byte(sid), []byte(sig), key) {
-		return sid, nil
+	if claims, ok := token.Claims.(*CustomClaim); ok && token.Valid {
+		return claims.SessionId, nil
+	} else {
+		return "", fmt.Errorf("parseToken: unable to cast claim to custom type: %w", err)
 	}
-	return "", fmt.Errorf("unable to parse token")
 }
 
 var storage Storage
