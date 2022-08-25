@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type CustomClaim struct {
+type CustomClaims struct {
 	jwt.RegisteredClaims
 	SessionId string
 }
@@ -267,7 +267,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 func createToken(sid, key []byte) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, CustomClaim{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, CustomClaims{
 		SessionId: string(sid),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Minute)),
@@ -277,11 +277,11 @@ func createToken(sid, key []byte) (string, error) {
 }
 
 func parseToken(ss string, key []byte) (string, error) {
-	token, err := jwt.ParseWithClaims(ss, &CustomClaim{}, func(t *jwt.Token) (interface{}, error) { return key, nil }, jwt.WithValidMethods([]string{jwt.SigningMethodHS512.Alg()}))
+	token, err := jwt.ParseWithClaims(ss, &CustomClaims{}, func(t *jwt.Token) (interface{}, error) { return key, nil }, jwt.WithValidMethods([]string{jwt.SigningMethodHS512.Alg()}))
 	if err != nil {
 		return "", fmt.Errorf("parseToken: unable to parse jwt token: %w", err)
 	}
-	if claims, ok := token.Claims.(*CustomClaim); ok && token.Valid {
+	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		return claims.SessionId, nil
 	} else {
 		return "", fmt.Errorf("parseToken: unable to cast claim to custom type: %w", err)
