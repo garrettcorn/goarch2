@@ -144,17 +144,23 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bsp, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.DefaultCost)
-	if err != nil {
-		msg := "there was an internal server error - evil laugh: hahahahaha"
+	if _, ok := db[e]; !ok {
+		bsp, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.DefaultCost)
+		if err != nil {
+			msg := "there was an internal server error - evil laugh: hahahahaha"
+			http.Error(w, msg, http.StatusInternalServerError)
+			return
+		}
+		log.Println("password", p)
+		log.Println("bcrypted", bsp)
+		db[e] = user{
+			password: bsp,
+			First:    f,
+		}
+	} else {
+		msg := "user already exists"
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
-	}
-	log.Println("password", p)
-	log.Println("bcrypted", bsp)
-	db[e] = user{
-		password: bsp,
-		First:    f,
 	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
