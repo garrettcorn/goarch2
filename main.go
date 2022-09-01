@@ -16,7 +16,7 @@ import (
 
 type user struct {
 	password []byte
-	First    string
+	Name     string
 }
 
 var oauth = &oauth2.Config{
@@ -73,7 +73,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	var f string
 	if user, ok := db[e]; ok {
-		f = user.First
+		f = user.Name
 	}
 
 	errMsg := r.FormValue("msg")
@@ -92,8 +92,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 	<h1>IF THERE IS ANY MESSAGE FOR YOU, HERE IT IS: %s</h1>
         <h1>REGISTER</h1>
 		<form action="/register" method="POST">
-		<label for="first">First</label>
-		<input type="text" name="first" placeholder="First" id="first">
+		<label for="name">Name</label>
+		<input type="text" name="name" placeholder="Name" id="name">
 		<input type="email" name="e">
 			<input type="password" name="p">
 			<input type="submit">
@@ -137,9 +137,9 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := r.FormValue("first")
+	f := r.FormValue("name")
 	if f == "" {
-		msg := url.QueryEscape("your first name needs to not be empty")
+		msg := url.QueryEscape("your name name needs to not be empty")
 		http.Redirect(w, r, "/?msg="+msg, http.StatusSeeOther)
 		return
 	}
@@ -155,7 +155,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		log.Println("bcrypted", bsp)
 		db[e] = user{
 			password: bsp,
-			First:    f,
+			Name:     f,
 		}
 	} else {
 		msg := "user already exists"
@@ -398,8 +398,8 @@ func partialRegister(w http.ResponseWriter, r *http.Request) {
 	<body>
 		<form action="/oauth/gitlab/register" method="POST">
 	
-		<label for="firstName">FIRST NAME</label>
-		<input type="text" name="first" id="firstName" value="%s">
+		<label for="Name">NAME</label>
+		<input type="text" name="name" id="Name" value="%s">
 	
 		<label for="Email">EMAIL</label>
 		<input type="text" name="email" id="Email" value="%s">
@@ -419,12 +419,12 @@ func oGitlabRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := r.FormValue("first")
+	f := r.FormValue("name")
 	e := r.FormValue("email")
 	oauthID := r.FormValue("oauthID")
 
 	if f == "" {
-		msg := url.QueryEscape("your first name needs to not be empty")
+		msg := url.QueryEscape("your name name needs to not be empty")
 		http.Redirect(w, r, "/?msg="+msg, http.StatusSeeOther)
 		return
 	}
@@ -451,7 +451,7 @@ func oGitlabRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db[e] = user{
-		First: f,
+		Name: f,
 	}
 
 	// key is uid from oauth provider; value is user id, eg, email
